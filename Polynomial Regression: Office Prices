@@ -1,0 +1,74 @@
+# Enter your code here. Read input from STDIN. Print output to STDOUT
+# Enter your code here. Read input from STDIN. Print output to STDOUT
+import numpy as np
+
+def standardize(x, mu, sig):
+    return (x - mu) / sig
+    
+class PolyRegression:
+    def __init__(self, steps=10, lr=0.1):
+        self.steps = steps
+        self.lr = lr
+        self.W = np.random.normal(size=(10), scale=0.1, loc=0.0) # initial random weights
+        
+    def polynomial_basis(self, data):
+        # shape (N, 10)
+        x0 = data[...,0]
+        x1 = data[...,1]
+        basis = [np.ones_like(x0), 
+                 x0, x1, 
+                 x0**2, x0*x1, x1**2, 
+                 x0**3, (x0**2)*x1, x0*(x1**2), x1**3]
+        return np.stack(basis).T
+    
+    def loss(self, y_hat, y):
+        mse = (y_hat - y)**2
+        return np.mean(mse)
+        
+    def train_step(self, x, y):
+        # forward pass
+        X = self.polynomial_basis(x)
+        y_hat = X @ self.W
+        # gradient of MSE loss
+        grad = 2 * X.T @ (y_hat - y)
+        # update weights via gradient descent    
+        self.W = self.W - self.lr * grad
+        # check MSE loss
+        # loss = self.loss(y_hat,y)
+        # print(loss)
+        
+    def train(self, train_data, target):
+        for _ in range(self.steps):
+            self.train_step(train_data, target)     
+            
+    def predict(self, test_data):
+        X = self.polynomial_basis(test_data)
+        pred = X @ self.W
+        return pred
+
+# get train / test data
+           
+_, N = map(int, input().split())
+data = [list(map(float, input().split())) for i in range(N)]
+data = np.array(data)
+mu, sig = np.mean(data, axis=0), np.std(data, axis=0)
+data = standardize(data, mu, sig)
+x_train, y_train = data[...,:2], data[...,2]
+
+N = int(input())
+data = [list(map(float, input().split())) for i in range(N)]
+x_test = np.array(data)
+x_test = standardize(data, mu[:-1], sig[:-1])
+
+# train polynomial regression model via MSE loss
+
+model = PolyRegression(steps=1000, lr=0.1)
+model.train(x_train, y_train)
+
+# get price predictions on test data
+
+y_pred = model.predict(x_test)
+y_pred = y_pred * sig[-1] + mu[-1] # unstandardize 
+
+for y in y_pred:
+    print(round(y, 2))
